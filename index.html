@@ -377,6 +377,20 @@ textarea{resize:vertical;min-height:64px;font-size:14px;}
       <button class="btn btn-primary" style="max-width:160px;padding:10px;" onclick="saveFormspree()">保存</button>
     </div>
 
+    <!-- Firebase設定リセット -->
+    <div class="settings-section">
+      <h3>🔥 Firebase設定・共有</h3>
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.8;margin-bottom:12px;">
+        業者にURLを共有すると、Firebase設定画面なしで使い始められます。
+      </div>
+      <button class="btn btn-primary" style="max-width:240px;padding:10px;margin-bottom:10px;" onclick="generateShareUrl()">📋 業者用共有URLをコピー</button>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:16px;line-height:1.8;">
+        ※ コピーしたURLを業者に送るだけでOKです。<br>業者はFirebase設定不要でPIN画面から使えます。
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Firebase設定を変更する場合：</div>
+      <button class="btn" style="background:transparent;border:1px solid var(--danger);color:var(--danger);max-width:200px;padding:10px;" onclick="resetFirebaseConfig()">Firebase設定をリセット</button>
+    </div>
+
     <!-- 使い方 -->
     <div class="settings-section">
       <h3>📖 使い方</h3>
@@ -446,19 +460,20 @@ import {
   deleteDoc, doc, query, orderBy, serverTimestamp, onSnapshot, setDoc, getDoc
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
+// 神山専用Firebase設定
 const firebaseConfig = {
-  apiKey:            "AIzaSyAbxdqS_Si9pO1yB_7z9lgwNJGWMafBxU8",
-  authDomain:        "ooba-seikyu.firebaseapp.com",
-  projectId:         "ooba-seikyu",
-  storageBucket:     "ooba-seikyu.firebasestorage.app",
-  messagingSenderId: "259694782500",
-  appId:             "1:259694782500:web:ba415b49cc0a77e86c50b1"
+  apiKey:            "AIzaSyAIcIEiVIgmnfuKJS4j0FZ74HEhlm0pAGY",
+  authDomain:        "kouyamasenyou.firebaseapp.com",
+  projectId:         "kouyamasenyou",
+  storageBucket:     "kouyamasenyou.firebasestorage.app",
+  messagingSenderId: "700471773369",
+  appId:             "1:700471773369:web:f24e7a7eb04fe017d5f368"
 };
-
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 window._db  = db;
 window._fns = { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp, onSnapshot, setDoc, getDoc };
+window._firebaseReady = true;
 </script>
 
 <script>
@@ -925,7 +940,7 @@ function loadPinModeUI(){
 }
 function saveCommonPin(){
   const v=document.getElementById('common-pin-input').value.trim();
-  if(!/^\d{4}$/.test(v)){showToast('4桁の数字で入力してください');return;}
+  if(v.length!==4||isNaN(v)){showToast('4桁の数字で入力してください');return;}
   localStorage.setItem(COMMONPIN_KEY,v);
   showToast('共通PINを保存しました');
 }
@@ -936,7 +951,7 @@ function changeAdminPin(){
   const np=document.getElementById('admin-new-pin').value;
   const err=document.getElementById('admin-pin-err');
   if(cur!==getAdminPin()){err.textContent='現在のPINが違います';return;}
-  if(!/^\d{4}$/.test(np)){err.textContent='4桁の数字で入力してください';return;}
+  if(np.length!==4||isNaN(np)){err.textContent='4桁の数字で入力してください';return;}
   localStorage.setItem(PIN_KEY,np);
   document.getElementById('admin-cur-pin').value='';
   document.getElementById('admin-new-pin').value='';
@@ -985,7 +1000,7 @@ function addGyoshaPin(){
   const pin=document.getElementById('new-gyosha-pin').value.trim();
   const err=document.getElementById('gyosha-pin-err');
   if(!name){err.textContent='業者名を入力してください';return;}
-  if(!/^\d{4}$/.test(pin)){err.textContent='PINは4桁の数字で入力してください';return;}
+  if(pin.length!==4||isNaN(pin)){err.textContent='PINは4桁の数字で入力してください';return;}
   if(pin===getAdminPin()){err.textContent='管理者PINと同じPINは使えません';return;}
   const list=getGyoshaPins();
   if(list.find(g=>g.pin===pin)){err.textContent='このPINは既に使われています';return;}
@@ -1007,6 +1022,8 @@ function showToast(msg){
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 // ══ グローバル公開 ══
+window.saveFirebaseConfig=saveFirebaseConfig;
+window.resetFirebaseConfig=resetFirebaseConfig;
 window.pressKey=pressKey; window.delKey=delKey;
 window.selectGemba=selectGemba; window.goToInput=goToInput; window.backToGemba=backToGemba;
 window.switchTab=switchTab; window.lockScreen=lockScreen;
@@ -1023,10 +1040,83 @@ window.renderGyoshaPinTable=renderGyoshaPinTable;
 window.saveOneGyoshaPin=saveOneGyoshaPin; window.deleteGyoshaPin=deleteGyoshaPin;
 window.addGyoshaPin=addGyoshaPin; window.updateGyoshaPin=updateGyoshaPin;
 
+// ══ Firebase設定 ══
+function saveFirebaseConfig() {
+  const config = {
+    apiKey:            document.getElementById('fb-apikey').value.trim(),
+    authDomain:        document.getElementById('fb-authdomain').value.trim(),
+    projectId:         document.getElementById('fb-projectid').value.trim(),
+    storageBucket:     document.getElementById('fb-storagebucket').value.trim(),
+    messagingSenderId: document.getElementById('fb-senderid').value.trim(),
+    appId:             document.getElementById('fb-appid').value.trim(),
+  };
+  const err = document.getElementById('fb-err');
+  if(!config.apiKey || !config.authDomain || !config.projectId || !config.appId) {
+    err.textContent = 'API Key・Auth Domain・Project ID・App IDは必須です';
+    return;
+  }
+  localStorage.setItem('oba_firebase_config', JSON.stringify(config));
+  showToast('Firebase設定を保存しました。再読み込みします…');
+  setTimeout(()=>{
+    window.location.href = window.location.href.split('?')[0];
+  }, 1500);
+}
+
+// Firebase設定済みURLを生成して共有
+function generateShareUrl() {
+  const config = localStorage.getItem('oba_firebase_config');
+  if(!config) { showToast('先にFirebase設定を保存してください'); return; }
+  const encoded = btoa(encodeURIComponent(config));
+  const url = `${location.origin}${location.pathname}?fb=${encoded}`;
+  navigator.clipboard.writeText(url).then(()=>{
+    showToast('共有URLをコピーしました！業者に送ってください😊');
+  }).catch(()=>{
+    prompt('このURLをコピーして業者に送ってください：', url);
+  });
+}
+
+function resetFirebaseConfig() {
+  if(!confirm('Firebase設定をリセットしますか？\n再読み込み後に設定画面が表示されます。')) return;
+  localStorage.removeItem('oba_firebase_config');
+  location.reload();
+}
+
+function checkFirebaseSetup() {
+  const setupScreen = document.getElementById('firebase-setup-screen');
+  const pinScreen = document.getElementById('pin-screen');
+  const saved = localStorage.getItem('oba_firebase_config');
+  if(!saved || !window._firebaseReady) {
+    if(pinScreen) pinScreen.style.display = 'none';
+    if(setupScreen) setupScreen.style.display = 'block';
+  } else {
+    if(setupScreen) setupScreen.style.display = 'none';
+    if(pinScreen) pinScreen.style.display = 'block';
+  }
+}
+
+// URLパラメータからFirebase設定を読み込む
+function loadFirebaseFromUrl() {
+  const params = new URLSearchParams(location.search);
+  const fb = params.get('fb');
+  if(fb && !localStorage.getItem('oba_firebase_config')) {
+    try {
+      const config = decodeURIComponent(atob(fb));
+      localStorage.setItem('oba_firebase_config', config);
+      // パラメータを除いたURLにリダイレクト
+      location.href = location.origin + location.pathname;
+    } catch(e) {
+      console.error('URL設定の読み込みエラー:', e);
+    }
+  }
+}
+loadFirebaseFromUrl();
+
 // ══ 初期化 ══
 initDefaultData();
 loadColor();
 document.getElementById('header-title').textContent=getCompany();
+// checkFirebaseSetup不要（設定済み）
 </script>
 </body>
 </html>
+
