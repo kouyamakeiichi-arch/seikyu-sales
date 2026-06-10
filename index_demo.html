@@ -1116,7 +1116,9 @@ function saveFirebaseConfig() {
   }
   localStorage.setItem('oba_firebase_config', JSON.stringify(config));
   showToast('Firebase設定を保存しました。再読み込みします…');
-  setTimeout(()=>location.reload(), 1500);
+  setTimeout(()=>{
+    window.location.href = window.location.href.split('?')[0];
+  }, 1500);
 }
 
 // Firebase設定済みURLを生成して共有
@@ -1141,12 +1143,11 @@ function resetFirebaseConfig() {
 function checkFirebaseSetup() {
   const setupScreen = document.getElementById('firebase-setup-screen');
   const pinScreen = document.getElementById('pin-screen');
-  if(!window._firebaseReady) {
-    // Firebase未設定の場合はPIN画面を隠してセットアップ画面を表示
+  const saved = localStorage.getItem('oba_firebase_config');
+  if(!saved || !window._firebaseReady) {
     if(pinScreen) pinScreen.style.display = 'none';
     if(setupScreen) setupScreen.style.display = 'block';
   } else {
-    // Firebase設定済みの場合はセットアップ画面を隠してPIN画面を表示
     if(setupScreen) setupScreen.style.display = 'none';
     if(pinScreen) pinScreen.style.display = 'block';
   }
