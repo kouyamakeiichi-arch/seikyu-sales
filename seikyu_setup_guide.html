@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>請求管理システム — セットアップ手順書</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap');
+:root{
+  --black:#080808;--dark:#101010;--dark2:#181818;--dark3:#202020;
+  --accent:#e8c547;--accent2:#f0d878;--white:#f0ede8;--gray:#6a6660;
+  --border:rgba(232,197,71,0.2);--green:#2a9a5a;--red:#c0392b;--radius:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--black);color:var(--white);max-width:480px;margin:0 auto;padding:24px 16px 48px}
+
+.header{text-align:center;padding:32px 0 40px;border-bottom:1px solid var(--border);margin-bottom:32px}
+.header-logo{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:.2em;color:var(--accent2)}
+.header-title{font-size:14px;font-weight:700;letter-spacing:.1em;color:var(--white);margin-top:8px}
+.header-sub{font-size:11px;color:var(--gray);margin-top:6px;letter-spacing:.06em;line-height:1.8}
+
+.section{margin-bottom:32px}
+.section-badge{display:inline-flex;align-items:center;gap:8px;margin-bottom:14px}
+.badge-num{width:32px;height:32px;border-radius:50%;background:var(--accent);color:var(--black);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;flex-shrink:0}
+.badge-title{font-size:15px;font-weight:700;letter-spacing:.04em}
+.badge-sub{font-size:11px;color:var(--gray);margin-left:40px;margin-bottom:12px;line-height:1.8}
+
+.card{background:var(--dark2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:10px}
+.card-head{background:rgba(232,197,71,0.1);padding:10px 14px;font-size:12px;font-weight:700;color:var(--accent2);letter-spacing:.06em;border-bottom:1px solid var(--border)}
+.card-body{padding:14px}
+
+.step-list{display:flex;flex-direction:column;gap:12px}
+.step{display:flex;gap:12px;align-items:flex-start}
+.step-dot{width:22px;height:22px;border-radius:50%;background:var(--dark3);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent);flex-shrink:0;margin-top:1px}
+.step-text{font-size:13px;color:var(--white);line-height:1.8;flex:1}
+.step-text .note{font-size:11px;color:var(--gray);margin-top:3px}
+.step-text .url{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent2);background:var(--dark3);padding:4px 8px;border-radius:6px;display:inline-block;margin-top:4px;word-break:break-all}
+.step-text .tag{display:inline-block;background:rgba(232,197,71,0.15);color:var(--accent2);font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;margin-left:4px;vertical-align:middle}
+
+.alert{padding:12px 14px;border-radius:var(--radius);font-size:12px;line-height:1.8;margin-bottom:10px}
+.alert-info{background:rgba(232,197,71,0.08);border:1px solid rgba(232,197,71,0.25);color:var(--accent2)}
+.alert-ok{background:rgba(42,154,90,0.1);border:1px solid rgba(42,154,90,0.3);color:#4aaa7a}
+.alert-ng{background:rgba(192,57,43,0.1);border:1px solid rgba(192,57,43,0.3);color:#e07060}
+
+.code{background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:'DM Mono',monospace;font-size:11px;color:var(--gray);line-height:1.9;margin:8px 0;word-break:break-all}
+.code b{color:var(--accent2)}
+
+.pin-box{display:inline-block;background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:6px 16px;font-family:'DM Mono',monospace;font-size:20px;letter-spacing:.3em;color:var(--accent2);margin:6px 0;}
+
+.divider{height:1px;background:var(--border);margin:32px 0}
+
+.footer{text-align:center;font-size:11px;color:var(--gray);letter-spacing:.1em;padding-top:24px;border-top:1px solid var(--border)}
+
+.checklist{display:flex;flex-direction:column;gap:8px}
+.check-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--dark2);border:1px solid var(--border);border-radius:10px;font-size:13px;cursor:pointer;transition:border-color .15s}
+.check-item:active{border-color:var(--accent)}
+.check-box{width:20px;height:20px;border-radius:4px;border:1.5px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .15s}
+.check-item.done .check-box{background:var(--green);border-color:var(--green)}
+.check-item.done .check-label{color:var(--gray);text-decoration:line-through}
+
+.role-row{display:flex;gap:8px;margin:10px 0;}
+.role-chip{flex:1;padding:10px 8px;border-radius:8px;font-size:12px;text-align:center;line-height:1.6;}
+.role-chip.admin{background:rgba(232,197,71,0.1);border:1px solid rgba(232,197,71,0.3);color:var(--accent2);}
+.role-chip.gyosha{background:rgba(42,154,90,0.1);border:1px solid rgba(42,154,90,0.3);color:#4aaa7a;}
+.role-chip .role-title{font-weight:700;font-size:13px;margin-bottom:4px;}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-logo">請求管理システム</div>
+  <div class="header-title">セットアップ手順書</div>
+  <div class="header-sub">
+    請求管理アプリの初期設定ガイドです。<br>
+    所要時間：約40〜60分<br>
+    ※ Googleアカウントが必要です
+  </div>
+</div>
+
+<!-- 事前確認 -->
+<div class="section">
+  <div class="section-badge">
+    <div class="badge-num">✓</div>
+    <div class="badge-title">事前に準備するもの</div>
+  </div>
+  <div class="checklist">
+    <div class="check-item" onclick="toggleCheck(this)">
+      <div class="check-box"></div>
+      <div class="check-label">Googleアカウント（Gmail）</div>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this)">
+      <div class="check-box"></div>
+      <div class="check-label">PCまたはスマホ（Chrome推奨）</div>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this)">
+      <div class="check-box"></div>
+      <div class="check-label">インターネット接続</div>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this)">
+      <div class="check-box"></div>
+      <div class="check-label">アプリ提供者から受け取った index.html</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- STEP 1: GitHub -->
+<div class="section">
+  <div class="section-badge">
+    <div class="badge-num">1</div>
+    <div class="badge-title">アプリを公開する（2つの方法）</div>
+  </div>
+  <div class="badge-sub">アプリをインターネットに公開する方法は2つあります。<br>どちらか1つを選んでください。</div>
+
+  <div class="alert alert-info">
+    💡 <strong>Netlify（おすすめ）</strong>：ファイルをドラッグするだけで公開できます。<br>
+    💡 <strong>GitHub Pages</strong>：GitHubアカウントがある方向け。
+  </div>
+
+  <!-- Netlify -->
+  <div class="card" style="border-color:rgba(0,180,140,0.4);">
+    <div class="card-head" style="background:rgba(0,180,140,0.1);color:#00b48c;border-color:rgba(0,180,140,0.3);">⭐ 方法A：Netlify（おすすめ）</div>
+    <div class="card-body">
+      <div class="alert alert-ok" style="margin-bottom:14px;">
+        ✅ Netlifyアカウントで管理するとURLが固定され、後から更新もできます
+      </div>
+      <div class="step-list">
+        <div class="step">
+          <div class="step-dot">1</div>
+          <div class="step-text">
+            ブラウザで以下のURLを開いてログイン
+            <div class="url">https://app.netlify.com</div>
+            <div class="note">※ Googleアカウントでログインできます</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-dot">2</div>
+          <div class="step-text">「<strong>Add new project</strong>」をクリック</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">3</div>
+          <div class="step-text">「<strong>Deploy manually</strong>」を選択</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">4</div>
+          <div class="step-text">
+            4つのファイルが入ったフォルダをドラッグ＆ドロップ
+            <div class="note">index.html・index_demo.html・index_sales.html・seikyu_setup_guide.html</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-dot">6</div>
+          <div class="step-text">
+            数秒でURLが発行される
+            <div class="url">https://xxxxxxxx.netlify.app</div>
+            <div class="note">このURLがホームページのURLです。ブックマークしてください。</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-dot">7</div>
+          <div class="step-text">
+            URLにアクセスしてホームページが表示されれば成功！
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ファイル更新方法 -->
+  <div class="card">
+    <div class="card-head">ファイルを更新する場合（上書きアップ）</div>
+    <div class="card-body">
+      <div class="step-list">
+        <div class="step">
+          <div class="step-dot">1</div>
+          <div class="step-text">
+            Netlifyダッシュボードにログイン
+            <div class="url">https://app.netlify.com</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-dot">2</div>
+          <div class="step-text">該当のサイト名をクリック</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">3</div>
+          <div class="step-text">「<strong>Deploys</strong>」タブをクリック</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">4</div>
+          <div class="step-text">画面を下にスクロール</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">5</div>
+          <div class="step-text">
+            「<strong>Need to update your project?</strong>」の下のエリアにフォルダをドロップ
+            <div class="note">「Or browse files to upload or choose a folder」からフォルダを選択することもできます</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-dot">6</div>
+          <div class="step-text">
+            アップロードが完了するまで待つ
+            <div class="note">「Post-processing Complete」と表示されれば完了です</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-dot">7</div>
+          <div class="step-text">
+            「<strong>Production Published</strong>」をクリック
+            <div class="note">Deploysタブの一覧に緑色で表示されます</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-dot">8</div>
+          <div class="step-text">
+            画面上部の「<strong>Open production deploy</strong>」ボタンをクリック
+            <div class="note">アプリのURLが開きます。このURLをブックマークしてください。</div>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;font-size:12px;color:var(--gray);margin:12px 0;">— または —</div>
+
+  <!-- GitHub Pages -->
+  <div class="alert alert-info">
+    💡 方法B：GitHubはアプリのファイルを公開・管理する場所です。ここにアップするとURLが発行されます。
+  </div>
+
+  <div class="card">
+    <div class="card-head">方法B：① GitHubアカウントを作成</div>
+    <div class="card-body">
+      <div class="step-list">
+        <div class="step">
+          <div class="step-dot">1</div>
+          <div class="step-text">
+            ブラウザで以下のURLを開く
+            <div class="url">https://github.com</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-dot">2</div>
+          <div class="step-text">「Sign up」からアカウントを作成<div class="note">Googleアカウントでの登録が簡単です</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">方法B：② リポジトリを作成してアップロード</div>
+    <div class="card-body">
+      <div class="step-list">
+        <div class="step">
+          <div class="step-dot">1</div>
+          <div class="step-text">右上の「＋」→「New repository」をクリック</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">2</div>
+          <div class="step-text">
+            リポジトリ名を入力
+            <div class="note">例：seikyu-app（会社名をローマ字で）</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-dot">3</div>
+          <div class="step-text">「Public」を選択 →「Create repository」をクリック</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">4</div>
+          <div class="step-text">「uploading an existing file」をクリック</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">5</div>
+          <div class="step-text">受け取った「index.html」をアップロード →「Commit changes」をクリック</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">方法B：③ GitHub Pagesで公開</div>
+    <div class="card-body">
+      <div class="step-list">
+        <div class="step">
+          <div class="step-dot">1</div>
+          <div class="step-text">リポジトリの「Settings」タブをクリック</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">2</div>
+          <div class="step-text">左メニューの「Pages」をクリック</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">3</div>
+          <div class="step-text">Branch を「main」に変更 →「Save」をクリック</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">4</div>
+          <div class="step-text">
+            1〜2分待つとURLが発行される
+            <div class="url">https://あなたのID.github.io/seikyu-app/</div>
+            <div class="note">このURLがアプリのURLです</div>
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-ok" style="margin-top:12px">
+        ✅ URLにアクセスしてPIN画面が表示されれば公開成功です！
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- STEP 2: Firebase -->
+<div class="section">
+  <div class="section-badge">
+    <div class="badge-num">2</div>
+    <div class="badge-title">Firebaseの設定</div>
+  </div>
+  <div class="badge-sub">データを保存するサービス（無料）の設定です。<br>FIREBASE（ファイアベース）と読みます。</div>
+
+  <div class="alert alert-info">
+    💡 Firebaseはデータベースです。請求データ・物件情報がここに保存されます。
+  </div>
+
+  <div class="card">
+    <div class="card-head">① Firebaseプロジェクトを作成</div>
+    <div class="card-body">
+      <div class="step-list">
+        <div class="step">
+          <div class="step-dot">1</div>
+          <div class="step-text">
+            ブラウザで以下のURLを開く
+            <div class="url">https://console.firebase.google.com</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-dot">2</div>
+          <div class="step-text">Googleアカウントでログイン</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">3</div>
+          <div class="step-text">「プロジェクトを作成」をクリック</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">4</div>
+          <div class="step-text">
+            プロジェクト名を入力
+            <div class="note">例：seikyu-kanri（会社名をローマ字で）</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-dot">5</div>
+          <div class="step-text">Googleアナリティクスは「無効」を選択</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">6</div>
+          <div class="step-text">「プロジェクトを作成」→「続行」をクリック</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">② Firestoreデータベースを作成</div>
+    <div class="card-body">
+      <div class="step-list">
+        <div class="step">
+          <div class="step-dot">1</div>
+          <div class="step-text">左メニュー「構築」→「Firestore Database」をクリック</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">2</div>
+          <div class="step-text">「データベースの作成」をクリック</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">3</div>
+          <div class="step-text">
+            ロケーションを選択
+            <div class="note">「asia-northeast1（東京）」があれば選択。なければ「us-central1（アメリカ）」でOKです。</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-dot">4</div>
+          <div class="step-text">
+            「テストモード」を選択 →「作成」をクリック
+            <div class="note">「ロックモード」ではなく「テストモード」を選択してください。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">③ セキュリティルールの確認</div>
+    <div class="card-body">
+      <div class="alert alert-ok" style="margin-bottom:12px;">
+        ✅ テストモードで作成した場合、ルールはすでに設定されています。変更不要です。
+      </div>
+      <div class="step-list">
+        <div class="step">
+          <div class="step-dot">1</div>
+          <div class="step-text">
+            Firestoreの「ルール」タブをクリックして確認するだけでOK
+            <div class="note">「allow read, write: if true」と表示されていれば問題ありません。</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-dot">2</div>
+          <div class="step-text">
+            ルールを変更する必要はありません
+            <div class="note">⚠️ 変更して「公開」を押すとエラーになる場合があります。そのままにしてください。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">④ ウェブアプリを登録してfirebaseConfigを取得</div>
+    <div class="card-body">
+      <div class="step-list">
+        <div class="step">
+          <div class="step-dot">1</div>
+          <div class="step-text">左上の歯車アイコン →「プロジェクトの設定」をクリック</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">2</div>
+          <div class="step-text">下にスクロールして「&lt;/&gt;」（ウェブ）アイコンをクリック</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">3</div>
+          <div class="step-text">ニックネームを入力 →「アプリを登録」をクリック</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">4</div>
+          <div class="step-text">
+            表示された <b>firebaseConfig</b> の内容を全部コピー
+            <div class="note">※ この内容をアプリ提供者に送ってください</div>
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-ok" style="margin-top:12px">
+        ✅ firebaseConfigをアプリ提供者に送ると、index.htmlを更新してもらえます。
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- STEP 3: Formspree -->
+<div class="section">
+  <div class="section-badge">
+    <div class="badge-num">3</div>
+    <div class="badge-title">Formspreeでメール通知を設定</div>
+  </div>
+  <div class="badge-sub">請求が入力されたときにメールで通知が届く設定です。<br>FORMSPREE（フォームスプリー）と読みます。</div>
+
+  <div class="alert alert-info">
+    💡 請求が入力されるたびに、指定したメールアドレスに内容が届きます。
+  </div>
+
+  <div class="card">
+    <div class="card-head">① Formspreeアカウントを作成</div>
+    <div class="card-body">
+      <div class="step-list">
+        <div class="step">
+          <div class="step-dot">1</div>
+          <div class="step-text">
+            ブラウザで以下のURLを開く
+            <div class="url">https://formspree.io</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-dot">2</div>
+          <div class="step-text">「Get Started」→ メールアドレスで登録</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">② フォームを作成してエンドポイントを取得</div>
+    <div class="card-body">
+      <div class="step-list">
+        <div class="step">
+          <div class="step-dot">1</div>
+          <div class="step-text">ダッシュボードで「New Form」をクリック</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">2</div>
+          <div class="step-text">フォーム名を入力（例：seikyu-notification）</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">3</div>
+          <div class="step-text">
+            発行されたエンドポイントURLをコピー
+            <div class="url">https://formspree.io/f/xxxxxxxx</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">③ アプリの設定画面に入力</div>
+    <div class="card-body">
+      <div class="step-list">
+        <div class="step">
+          <div class="step-dot">1</div>
+          <div class="step-text">アプリにログイン（管理者PIN）</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">2</div>
+          <div class="step-text">右上の ⚙ →「通知メール設定」</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">3</div>
+          <div class="step-text">コピーしたURLを入力 →「保存」をクリック</div>
+        </div>
+      </div>
+      <div class="alert alert-ng" style="margin-top:12px">
+        ⚠️「保存」を押さないと反映されません。必ず保存してください。
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- STEP 4: 初期設定 -->
+<div class="section">
+  <div class="section-badge">
+    <div class="badge-num">4</div>
+    <div class="badge-title">アプリの初期設定</div>
+  </div>
+  <div class="badge-sub">アプリにログインして基本情報を設定します。</div>
+
+  <div class="card">
+    <div class="card-head">① 管理者でログイン</div>
+    <div class="card-body">
+      <div class="step-list">
+        <div class="step">
+          <div class="step-dot">1</div>
+          <div class="step-text">発行されたURLをブラウザで開く</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">2</div>
+          <div class="step-text">
+            初期PINを入力してログイン
+            <div class="pin-box">1234</div>
+            <div class="note">※ ログイン後すぐにPINを変更してください</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">② 設定画面（⚙）で初期設定</div>
+    <div class="card-body">
+      <div class="step-list">
+        <div class="step">
+          <div class="step-dot">1</div>
+          <div class="step-text">右上の ⚙ アイコンをタップして設定画面を開く</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">2</div>
+          <div class="step-text">
+            以下を順番に設定する
+            <div class="note">
+              ・会社名 / アプリ名を入力 →「保存」<br>
+              ・イメージカラーを選択<br>
+              ・物件名を追加（＋追加ボタン）<br>
+              ・管理者PINを変更（1234から変更推奨）<br>
+              ・通知メールのURLを入力 →「保存」
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">③ 業者PINの設定</div>
+    <div class="card-body">
+      <div class="alert alert-info" style="margin-bottom:12px">
+        💡 業者がアプリを使う場合、2つのモードがあります
+      </div>
+      <div class="role-row">
+        <div class="role-chip admin">
+          <div class="role-title">モードA</div>
+          共通PIN<br>全業者が同じPINを使用。PINは自由に設定可能。
+        </div>
+        <div class="role-chip gyosha">
+          <div class="role-title">モードB</div>
+          個別PIN<br>業者ごとにPINを設定。ログイン時に業者名が自動入力。
+        </div>
+      </div>
+      <div class="step-list" style="margin-top:12px">
+        <div class="step">
+          <div class="step-dot">1</div>
+          <div class="step-text">設定画面の「PINモード」でモードを選択</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">2</div>
+          <div class="step-text">モードBの場合は業者名とPINを追加していく</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">3</div>
+          <div class="step-text">業者にPINを伝えてアプリURLを共有する</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- STEP 5: 日常の使い方 -->
+<div class="section">
+  <div class="section-badge">
+    <div class="badge-num">5</div>
+    <div class="badge-title">日常の使い方</div>
+  </div>
+
+  <div class="role-row">
+    <div class="role-chip admin">
+      <div class="role-title">👤 管理者</div>
+      PIN：設定した管理者PIN<br>全機能が使えます
+    </div>
+    <div class="role-chip gyosha">
+      <div class="role-title">🏢 業者</div>
+      PIN：業者用PIN<br>請求入力のみ
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">請求を入力する（業者・管理者共通）</div>
+    <div class="card-body">
+      <div class="step-list">
+        <div class="step">
+          <div class="step-dot">1</div>
+          <div class="step-text">URLを開いてPINでログイン</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">2</div>
+          <div class="step-text">物件を選んで「この物件で入力する」をタップ</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">3</div>
+          <div class="step-text">業者名・金額・日付を入力</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">4</div>
+          <div class="step-text">「保存＋送信」を押して完了<div class="note">登録メールに通知が届きます</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">一覧・集計を確認する（管理者のみ）</div>
+    <div class="card-body">
+      <div class="step-list">
+        <div class="step">
+          <div class="step-dot">1</div>
+          <div class="step-text">管理者PINでログイン → 物件を選択</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">2</div>
+          <div class="step-text">「一覧・集計」タブをタップ</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">3</div>
+          <div class="step-text">業者ごとの請求・合計金額を確認<div class="note">リアルタイムで自動更新されます（LIVE表示）</div></div>
+        </div>
+        <div class="step">
+          <div class="step-dot">4</div>
+          <div class="step-text">「CSV」ボタンでExcel用データを出力</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">🔒 ロックする</div>
+    <div class="card-body">
+      <div class="step-list">
+        <div class="step">
+          <div class="step-dot">1</div>
+          <div class="step-text">右上の「ロック」ボタンを押す</div>
+        </div>
+        <div class="step">
+          <div class="step-dot">2</div>
+          <div class="step-text">PIN画面に戻ります<div class="note">離席時は必ずロックしてください</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- 注意事項 -->
+<div class="section">
+  <div class="alert alert-ng">
+    ⚠️ アプリはインターネット接続が必要です。オフラインでは使えません。
+  </div>
+  <div class="alert alert-ng" style="margin-top:8px">
+    ⚠️ 設定画面で変更した後は必ず「保存」ボタンを押してください。押さないと反映されません。
+  </div>
+  <div class="alert alert-ng" style="margin-top:8px">
+    ⚠️ 管理者PINは初期値（1234）から必ず変更してください。
+  </div>
+  <div class="alert alert-info" style="margin-top:8px">
+    💡 2画面PCをお持ちの方は、左画面に「一覧・集計」、右画面に「請求入力」を開くと、入力した金額がリアルタイムで合計に反映されるのを確認できます。
+  </div>
+  <div class="alert alert-info" style="margin-top:8px">
+    💡 困ったことがあればアプリ提供者にお問い合わせください。
+  </div>
+</div>
+
+<div class="footer">
+  © 請求管理システム 2026<br>
+  セットアップ手順書
+</div>
+
+<script>
+function toggleCheck(el) {
+  el.classList.toggle('done');
+  const box = el.querySelector('.check-box');
+  box.textContent = el.classList.contains('done') ? '✓' : '';
+}
+</script>
+</body>
+</html>

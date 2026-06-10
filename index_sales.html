@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>請求管理システム</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0f0f0f; --surface:#1a1a1a; --surface2:#222; --border:#2e2e2e;
+  --accent:#e8c547; --accent-dim:#3a2e00;
+  --text:#f0ede8; --text-muted:#888;
+  --danger:#e85454; --success:#54c87a; --radius:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px 60px;}
+header{width:100%;max-width:560px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+.site-label{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:4px;}
+.site-title{font-size:15px;font-weight:500;color:var(--accent);}
+.header-right{display:flex;gap:8px;align-items:center;}
+.live-badge{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--success);}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--success);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.role-badge{font-size:10px;padding:3px 8px;border-radius:100px;font-weight:500;}
+.role-badge.admin{background:#2a2000;color:var(--accent);border:1px solid var(--accent);}
+.role-badge.gyosha{background:#0a2e18;color:var(--success);border:1px solid var(--success);}
+
+.card{width:100%;max-width:560px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px 20px;margin-bottom:12px;}
+.tab-bar{width:100%;max-width:560px;display:flex;gap:4px;margin-bottom:16px;}
+.tab{flex:1;padding:10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);color:var(--text-muted);font-family:'Noto Sans JP',sans-serif;font-size:13px;cursor:pointer;transition:.15s;}
+.tab.active{background:var(--accent);color:#111;border-color:var(--accent);font-weight:500;}
+
+/* PIN */
+#pin-screen{text-align:center;}
+.pin-title{font-size:13px;color:var(--text-muted);letter-spacing:.08em;margin-bottom:24px;}
+.pin-dots{display:flex;gap:14px;justify-content:center;margin-bottom:24px;}
+.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--border);background:transparent;transition:.15s;}
+.pin-dot.filled{background:var(--accent);border-color:var(--accent);}
+.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:260px;margin:0 auto 12px;}
+.key{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:500;padding:16px 0;cursor:pointer;transition:.12s;user-select:none;-webkit-tap-highlight-color:transparent;}
+.key:active{background:#333;transform:scale(.96);}
+.key.del{font-size:14px;color:var(--text-muted);}
+.key.zero{grid-column:2;}
+.pin-error{color:var(--danger);font-size:12px;min-height:18px;}
+
+/* GEMBA */
+.gemba-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+.gemba-item{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;cursor:pointer;transition:.15s;}
+.gemba-item:hover{border-color:var(--accent);}
+.gemba-item.selected{border-color:var(--accent);background:var(--accent-dim);}
+.gemba-name{font-size:14px;font-weight:500;}
+.gemba-arrow{color:var(--text-muted);font-size:12px;}
+
+/* FORM */
+.form-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.form-title{font-size:14px;font-weight:500;color:var(--accent);}
+.top-btns{display:flex;gap:8px;align-items:center;}
+.icon-btn{background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;padding:2px;line-height:1;}
+.icon-btn:hover{color:var(--text);}
+.lock-btn{background:none;border:1px solid var(--border);color:var(--text-muted);font-size:11px;padding:4px 10px;border-radius:4px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
+.lock-btn:hover{border-color:var(--text-muted);color:var(--text);}
+.current-gemba-badge{display:inline-flex;align-items:center;gap:6px;background:var(--accent-dim);border:1px solid var(--accent);border-radius:4px;padding:4px 10px;font-size:12px;color:var(--accent);margin-bottom:16px;cursor:pointer;}
+.field{margin-bottom:14px;}
+label{display:block;font-size:11px;color:var(--text-muted);letter-spacing:.08em;margin-bottom:5px;}
+input,textarea,select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:15px;padding:10px 12px;outline:none;transition:.15s;}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);}
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
+select option{background:var(--surface2);}
+.amount-wrap{position:relative;}
+.yen{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-family:'IBM Plex Mono',monospace;font-size:14px;}
+.amount-wrap input{padding-left:24px;font-family:'IBM Plex Mono',monospace;}
+textarea{resize:vertical;min-height:64px;font-size:14px;}
+.btn-row{display:flex;gap:10px;margin-top:18px;}
+.btn{flex:1;padding:13px;border-radius:var(--radius);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:500;cursor:pointer;border:none;transition:.15s;}
+.btn:active{transform:scale(.98);}
+.btn-primary{background:var(--accent);color:#111;}
+.btn-primary:hover{opacity:.9;}
+.btn-primary:disabled{opacity:.4;cursor:default;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-muted);}
+.btn-ghost:hover{border-color:var(--text-muted);color:var(--text);}
+.status-msg{text-align:center;font-size:12px;margin-top:10px;min-height:18px;color:var(--success);}
+.status-msg.err{color:var(--danger);}
+
+/* LIST */
+.list-toolbar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
+.list-toolbar select{flex:1;min-width:110px;font-size:13px;padding:8px 10px;}
+.btn-sm{padding:8px 14px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:none;font-family:'Noto Sans JP',sans-serif;white-space:nowrap;}
+.btn-sm.outline{background:transparent;border:1px solid var(--border);color:var(--text-muted);}
+.btn-sm.outline:hover{border-color:var(--text-muted);color:var(--text);}
+.btn-sm.green{background:#1a3a2a;color:var(--success);border:1px solid #2a5a3a;}
+.summary-bar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.summary-chip{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 14px;font-size:12px;}
+.summary-chip .label{color:var(--text-muted);margin-bottom:2px;}
+.summary-chip .value{font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--accent);font-weight:500;}
+.gyosha-group{margin-bottom:12px;}
+.gyosha-header{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;cursor:pointer;user-select:none;}
+.gyosha-name{font-size:14px;font-weight:500;}
+.gyosha-total{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--accent);}
+.gyosha-arrow{color:var(--text-muted);font-size:11px;transition:transform .2s;}
+.gyosha-arrow.open{transform:rotate(180deg);}
+.gyosha-rows{display:none;border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);overflow:hidden;}
+.gyosha-rows.open{display:block;}
+.row-item{display:grid;grid-template-columns:88px 1fr auto;gap:6px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;}
+.row-item:last-child{border-bottom:none;}
+.row-date{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted);}
+.row-memo{color:var(--text-muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.row-amount{font-family:'IBM Plex Mono',monospace;font-size:13px;text-align:right;white-space:nowrap;}
+.row-del{background:none;border:none;color:#555;cursor:pointer;font-size:14px;padding:2px 4px;margin-left:4px;}
+.row-del:hover{color:var(--danger);}
+.empty-msg{text-align:center;color:var(--text-muted);font-size:13px;padding:28px 0;}
+.loading-msg{text-align:center;color:var(--text-muted);font-size:13px;padding:20px 0;}
+
+/* SETTINGS */
+.settings-section{margin-bottom:24px;}
+.settings-section h3{font-size:12px;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px;}
+.color-swatches{display:flex;gap:10px;flex-wrap:wrap;}
+.swatch{width:40px;height:40px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:.15s;position:relative;}
+.swatch.selected{border-color:#fff;}
+.swatch:after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;opacity:0;}
+.swatch.selected:after{opacity:1;}
+
+/* PIN管理テーブル */
+.pin-mode-toggle{display:flex;gap:8px;margin-bottom:16px;}
+.mode-btn{flex:1;padding:10px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);font-family:'Noto Sans JP',sans-serif;font-size:13px;cursor:pointer;transition:.15s;text-align:center;}
+.mode-btn.active{background:var(--accent);color:#111;border-color:var(--accent);font-weight:500;}
+.pin-table{width:100%;border-collapse:collapse;margin-bottom:12px;}
+.pin-table th{font-size:11px;color:var(--text-muted);text-align:left;padding:6px 10px;border-bottom:1px solid var(--border);}
+.pin-table td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle;}
+.pin-table tr:last-child td{border-bottom:none;}
+.pin-input-cell{display:flex;align-items:center;gap:6px;}
+.pin-input-cell input{width:80px;font-family:'IBM Plex Mono',monospace;font-size:14px;letter-spacing:.15em;padding:6px 8px;text-align:center;}
+.pin-save-btn{background:var(--accent);color:#111;border:none;border-radius:4px;padding:5px 10px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Noto Sans JP',sans-serif;white-space:nowrap;}
+.pin-del-btn{background:none;border:1px solid var(--danger);color:var(--danger);border-radius:4px;padding:5px 8px;font-size:12px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
+.add-gyosha-pin-row{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+.add-gyosha-pin-row input{font-size:13px;padding:8px 10px;}
+.add-gyosha-pin-row .name-input{flex:2;}
+.add-gyosha-pin-row .pin-input{flex:1;min-width:80px;font-family:'IBM Plex Mono',monospace;letter-spacing:.15em;text-align:center;}
+.add-gyosha-pin-row button{padding:8px 14px;border-radius:var(--radius);background:var(--accent);color:#111;font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:'Noto Sans JP',sans-serif;white-space:nowrap;}
+.common-pin-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+.common-pin-row input{width:120px;font-family:'IBM Plex Mono',monospace;letter-spacing:.2em;text-align:center;font-size:16px;}
+
+.gemba-manage-list{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+.gemba-manage-item{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;}
+.gemba-manage-name{flex:1;font-size:13px;}
+.gemba-del-btn{background:none;border:1px solid var(--danger);color:var(--danger);font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
+.add-gemba-row{display:flex;gap:8px;}
+.add-gemba-row input{font-size:13px;padding:9px 12px;}
+.add-gemba-btn{padding:9px 16px;border-radius:var(--radius);background:var(--accent);color:#111;font-size:13px;font-weight:500;cursor:pointer;border:none;white-space:nowrap;font-family:'Noto Sans JP',sans-serif;}
+.modal-err{color:var(--danger);font-size:12px;min-height:16px;margin-top:6px;}
+.info-box{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:12px 14px;font-size:12px;color:var(--text-muted);line-height:1.7;margin-bottom:12px;}
+.info-box strong{color:var(--text);}
+
+.howto-item{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--border);}
+.howto-num{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--accent);margin-top:1px;}
+.howto-title{font-size:13px;font-weight:500;margin-bottom:4px;}
+.howto-desc{font-size:12px;color:var(--text-muted);line-height:1.7;}
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--success);color:#111;font-size:13px;font-weight:500;padding:9px 20px;border-radius:100px;opacity:0;transition:.3s;pointer-events:none;white-space:nowrap;z-index:999;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="site-label">請求管理システム</div>
+    <div class="site-title" id="header-title">請求管理</div>
+  </div>
+  <div class="header-right" id="header-btns" style="display:none;">
+    <div class="live-badge" id="live-badge" style="display:none;"><div class="live-dot"></div>LIVE</div>
+    <span class="role-badge" id="role-badge"></span>
+    <button class="icon-btn" id="settings-icon" onclick="showSettings()" title="設定" style="display:none;">⚙</button>
+    <button class="lock-btn" onclick="lockScreen()">ロック</button>
+  </div>
+</header>
+
+<!-- ⓪ Firebase初回設定画面 -->
+<div class="card" id="firebase-setup-screen" style="display:none;">
+  <div style="text-align:center;margin-bottom:24px;">
+    <div style="font-size:32px;margin-bottom:8px;">🔥</div>
+    <div style="font-size:15px;font-weight:700;color:var(--accent);margin-bottom:6px;">Firebase設定</div>
+    <div style="font-size:12px;color:var(--text-muted);line-height:1.8;">初回のみ設定が必要です。<br>Firebaseコンソールから取得した<br>設定情報を入力してください。</div>
+  </div>
+  <div class="field"><label>API Key *</label><input type="text" id="fb-apikey" placeholder="AIzaSy..."></div>
+  <div class="field"><label>Auth Domain *</label><input type="text" id="fb-authdomain" placeholder="your-project.firebaseapp.com"></div>
+  <div class="field"><label>Project ID *</label><input type="text" id="fb-projectid" placeholder="your-project-id"></div>
+  <div class="field"><label>Storage Bucket</label><input type="text" id="fb-storagebucket" placeholder="your-project.appspot.com"></div>
+  <div class="field"><label>Messaging Sender ID</label><input type="text" id="fb-senderid" placeholder="123456789"></div>
+  <div class="field"><label>App ID *</label><input type="text" id="fb-appid" placeholder="1:123456789:web:abc..."></div>
+  <div class="alert-info" style="background:rgba(232,197,71,0.08);border:1px solid rgba(232,197,71,0.2);border-radius:8px;padding:12px;font-size:12px;color:var(--accent);line-height:1.8;margin-bottom:16px;">
+    💡 Firebaseコンソール → プロジェクトの設定 → ウェブアプリ → firebaseConfig の値をコピーしてください
+  </div>
+  <button class="btn btn-primary" onclick="saveFirebaseConfig()">設定を保存してはじめる</button>
+  <p class="status-msg err" id="fb-err" style="margin-top:10px;min-height:18px;"></p>
+</div>
+
+<!-- ① PIN -->
+<div class="card" id="pin-screen">
+  <p class="pin-title">PINを入力してください</p>
+  <div class="pin-dots">
+    <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-keypad">
+    <button class="key" onclick="pressKey('1')">1</button>
+    <button class="key" onclick="pressKey('2')">2</button>
+    <button class="key" onclick="pressKey('3')">3</button>
+    <button class="key" onclick="pressKey('4')">4</button>
+    <button class="key" onclick="pressKey('5')">5</button>
+    <button class="key" onclick="pressKey('6')">6</button>
+    <button class="key" onclick="pressKey('7')">7</button>
+    <button class="key" onclick="pressKey('8')">8</button>
+    <button class="key" onclick="pressKey('9')">9</button>
+    <button class="key zero" onclick="pressKey('0')">0</button>
+    <button class="key del" onclick="delKey()">⌫</button>
+  </div>
+  <p class="pin-error" id="pin-error"></p>
+</div>
+
+<!-- ② 物件選択 -->
+<div id="gemba-screen" style="display:none;width:100%;max-width:560px;">
+  <div class="card">
+    <div class="form-header">
+      <span class="form-title">🏗 物件を選択</span>
+      <span style="font-size:12px;color:var(--text-muted);">物件を選んで入力へ</span>
+    </div>
+    <div class="gemba-list" id="gemba-list"><p class="loading-msg">読み込み中…</p></div>
+    <button class="btn btn-primary" onclick="goToInput()" id="gemba-select-btn" disabled>この物件で入力する →</button>
+  </div>
+</div>
+
+<!-- ③ メイン（管理者） -->
+<div id="main-screen" style="display:none;width:100%;max-width:560px;">
+  <div class="tab-bar">
+    <button class="tab active" id="tab-input" onclick="switchTab('input')">📥 請求入力</button>
+    <button class="tab" id="tab-list" onclick="switchTab('list')">📋 一覧・集計</button>
+  </div>
+  <div id="pane-input">
+    <div class="card">
+      <div class="current-gemba-badge" onclick="backToGemba()">🏗 <span id="current-gemba-label">—</span> <span style="font-size:10px;opacity:.6;">▼変更</span></div>
+      <div class="field">
+        <label>業者名 *</label>
+        <input type="text" id="gyosha" placeholder="例：山田電気工事" autocomplete="off" list="gyosha-list">
+        <datalist id="gyosha-list"></datalist>
+      </div>
+      <div class="field">
+        <label>請求金額 (円) *</label>
+        <div class="amount-wrap"><span class="yen">¥</span><input type="number" id="kingaku" placeholder="0" min="0"></div>
+      </div>
+      <div class="field"><label>日付 *</label><input type="date" id="hizuke"></div>
+      <div class="field"><label>メモ・備考</label><textarea id="memo" placeholder="備考があれば入力"></textarea></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="clearForm()">クリア</button>
+        <button class="btn btn-primary" id="send-btn" onclick="sendForm()">保存 ＋ 送信</button>
+      </div>
+      <p class="status-msg" id="status-msg"></p>
+    </div>
+  </div>
+  <div id="pane-list" style="display:none;">
+    <div class="card">
+      <div class="list-toolbar">
+        <select id="sort-sel" onchange="renderList()">
+          <option value="date-desc">日付：新しい順</option>
+          <option value="date-asc">日付：古い順</option>
+          <option value="amount-desc">金額：高い順</option>
+          <option value="amount-asc">金額：低い順</option>
+        </select>
+        <select id="filter-gyosha" onchange="renderList()"><option value="">全業者</option></select>
+        <button class="btn-sm green" onclick="exportCSV()">CSV</button>
+      </div>
+      <div class="summary-bar" id="summary-bar"></div>
+      <div id="list-body"><p class="loading-msg">読み込み中…</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- ④ 業者用（入力のみ） -->
+<div id="gyosha-screen" style="display:none;width:100%;max-width:560px;">
+  <div class="card">
+    <div class="current-gemba-badge" onclick="backToGemba()">🏗 <span id="gyosha-gemba-label">—</span> <span style="font-size:10px;opacity:.6;">▼変更</span></div>
+    <div class="field">
+      <label>業者名</label>
+      <input type="text" id="gyosha-name-display" readonly style="background:var(--surface2);color:var(--accent);font-weight:500;">
+    </div>
+    <div class="field">
+      <label>請求金額 (円) *</label>
+      <div class="amount-wrap"><span class="yen">¥</span><input type="number" id="g-kingaku" placeholder="0" min="0"></div>
+    </div>
+    <div class="field"><label>日付 *</label><input type="date" id="g-hizuke"></div>
+    <div class="field"><label>メモ・備考</label><textarea id="g-memo" placeholder="備考があれば入力"></textarea></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="clearGyoshaForm()">クリア</button>
+      <button class="btn btn-primary" id="g-send-btn" onclick="sendGyoshaForm()">送信する</button>
+    </div>
+    <p class="status-msg" id="g-status-msg"></p>
+  </div>
+</div>
+
+<!-- ⑤ 設定（管理者のみ） -->
+<div id="settings-screen" style="display:none;width:100%;max-width:560px;">
+  <div class="card">
+    <div class="form-header">
+      <span class="form-title">⚙ 設定</span>
+      <button class="lock-btn" onclick="hideSettings()">← 戻る</button>
+    </div>
+
+    <!-- 会社名 -->
+    <div class="settings-section">
+      <h3>会社名・アプリ名</h3>
+      <div class="field" style="margin-bottom:8px;"><label>会社名 / アプリ名</label><input type="text" id="company-name-input" placeholder="例：〇〇建設 請求管理"></div>
+      <button class="btn btn-primary" style="max-width:160px;padding:10px;" onclick="saveCompanyName()">保存</button>
+    </div>
+
+    <!-- カラー -->
+    <div class="settings-section">
+      <h3>🎨 イメージカラー</h3>
+      <div class="color-swatches">
+        <div class="swatch" style="background:#e8c547;" data-color="#e8c547" data-dim="#3a2e00" onclick="selectColor(this)"></div>
+        <div class="swatch" style="background:#54c87a;" data-color="#54c87a" data-dim="#0a2e18" onclick="selectColor(this)"></div>
+        <div class="swatch" style="background:#5b9cf6;" data-color="#5b9cf6" data-dim="#0a1e3a" onclick="selectColor(this)"></div>
+        <div class="swatch" style="background:#e8775b;" data-color="#e8775b" data-dim="#3a1500" onclick="selectColor(this)"></div>
+        <div class="swatch" style="background:#c47be8;" data-color="#c47be8" data-dim="#2a0a3a" onclick="selectColor(this)"></div>
+      </div>
+    </div>
+
+    <!-- 物件管理 -->
+    <div class="settings-section">
+      <h3>🏗 物件管理</h3>
+      <div class="gemba-manage-list" id="gemba-manage-list"></div>
+      <div class="add-gemba-row">
+        <input type="text" id="new-gemba-input" placeholder="物件名を入力">
+        <button class="add-gemba-btn" onclick="addGemba()">＋ 追加</button>
+      </div>
+    </div>
+
+    <!-- PIN管理 -->
+    <div class="settings-section">
+      <h3>🔐 PINモード・管理</h3>
+      <div class="info-box">
+        <strong>モードA：共通業者PIN</strong> — 全業者が同じPINで入力画面のみアクセス<br>
+        <strong>モードB：業者個別PIN</strong> — 業者ごとにPINを設定、ログイン時に業者名が自動入力
+      </div>
+      <div class="pin-mode-toggle">
+        <button class="mode-btn" id="mode-btn-a" onclick="setPinMode('A')">モードA：共通PIN</button>
+        <button class="mode-btn" id="mode-btn-b" onclick="setPinMode('B')">モードB：個別PIN</button>
+      </div>
+
+      <!-- 管理者PIN -->
+      <div style="margin-bottom:16px;">
+        <label style="margin-bottom:8px;">管理者PIN（現在）</label>
+        <div class="common-pin-row" style="margin-bottom:0;">
+          <input type="password" id="admin-cur-pin" maxlength="4" inputmode="numeric" placeholder="現在のPIN">
+          <input type="password" id="admin-new-pin" maxlength="4" inputmode="numeric" placeholder="新しいPIN">
+          <button class="pin-save-btn" onclick="changeAdminPin()">変更</button>
+        </div>
+        <p class="modal-err" id="admin-pin-err"></p>
+      </div>
+
+      <!-- モードA：共通業者PIN -->
+      <div id="mode-a-section">
+        <label style="margin-bottom:8px;">業者共通PIN</label>
+        <div class="common-pin-row">
+          <input type="text" id="common-pin-input" maxlength="4" inputmode="numeric" placeholder="例：0000" style="font-family:'IBM Plex Mono',monospace;letter-spacing:.2em;text-align:center;font-size:16px;">
+          <button class="pin-save-btn" onclick="saveCommonPin()">保存</button>
+        </div>
+      </div>
+
+      <!-- モードB：個別PIN -->
+      <div id="mode-b-section" style="display:none;">
+        <label style="margin-bottom:8px;">業者個別PIN一覧</label>
+        <table class="pin-table" id="gyosha-pin-table">
+          <thead><tr><th>業者名</th><th>PIN</th><th></th></tr></thead>
+          <tbody id="gyosha-pin-tbody"></tbody>
+        </table>
+        <div class="add-gyosha-pin-row">
+          <input type="text" class="name-input" id="new-gyosha-name" placeholder="業者名">
+          <input type="text" class="pin-input" id="new-gyosha-pin" maxlength="4" inputmode="numeric" placeholder="PIN">
+          <button onclick="addGyoshaPin()">＋ 追加</button>
+        </div>
+        <p class="modal-err" id="gyosha-pin-err"></p>
+      </div>
+    </div>
+
+    <!-- メール -->
+    <div class="settings-section">
+      <h3>📧 通知メール設定</h3>
+      <div class="info-box">
+        <strong>Formspree</strong> を使ってメール通知を送信します。<br>
+        Formspreeアカウント（<strong>formspree.io</strong>）でフォームを作成し、<br>
+        エンドポイントURL（https://formspree.io/f/xxxxxxxx）を入力してください。<br>
+        変更後は必ず<strong>「保存」ボタン</strong>を押してください。
+      </div>
+      <div class="field" style="margin-bottom:8px;">
+        <label>現在の設定</label>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text-muted);" id="formspree-masked"></div>
+      </div>
+      <div class="field" style="margin-bottom:8px;"><label>新しいエンドポイント</label><input type="text" id="formspree-input" placeholder="https://formspree.io/f/xxxxxxxx"></div>
+      <button class="btn btn-primary" style="max-width:160px;padding:10px;" onclick="saveFormspree()">保存</button>
+    </div>
+
+    <!-- Firebase設定リセット -->
+    <div class="settings-section">
+      <h3>🔥 Firebase設定・共有</h3>
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.8;margin-bottom:12px;">
+        業者にURLを共有すると、Firebase設定画面なしで使い始められます。
+      </div>
+      <button class="btn btn-primary" style="max-width:240px;padding:10px;margin-bottom:10px;" onclick="generateShareUrl()">📋 業者用共有URLをコピー</button>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:16px;line-height:1.8;">
+        ※ コピーしたURLを業者に送るだけでOKです。<br>業者はFirebase設定不要でPIN画面から使えます。
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Firebase設定を変更する場合：</div>
+      <button class="btn" style="background:transparent;border:1px solid var(--danger);color:var(--danger);max-width:200px;padding:10px;" onclick="resetFirebaseConfig()">Firebase設定をリセット</button>
+    </div>
+
+    <!-- 使い方 -->
+    <div class="settings-section">
+      <h3>📖 使い方</h3>
+      <div class="howto-item">
+        <div class="howto-num">1</div>
+        <div>
+          <div class="howto-title">PINでログイン</div>
+          <div class="howto-desc">管理者PIN・業者PINを入力してログインします。<br>
+          管理者：全機能（入力・一覧・設定）が使えます。<br>
+          業者：請求入力のみ使えます。一覧は見えません。</div>
+        </div>
+      </div>
+      <div class="howto-item">
+        <div class="howto-num">2</div>
+        <div>
+          <div class="howto-title">物件を選択</div>
+          <div class="howto-desc">ログイン後、物件一覧が表示されます。入力する物件を選んで「この物件で入力する」を押してください。</div>
+        </div>
+      </div>
+      <div class="howto-item">
+        <div class="howto-num">3</div>
+        <div>
+          <div class="howto-title">請求入力</div>
+          <div class="howto-desc">業者名・請求金額・日付は必須項目です。入力後「保存＋送信」を押すとFirebaseに保存され、登録メールにも通知が届きます。</div>
+        </div>
+      </div>
+      <div class="howto-item">
+        <div class="howto-num">4</div>
+        <div>
+          <div class="howto-title">一覧・集計（管理者のみ）</div>
+          <div class="howto-desc">業者ごとに請求をまとめて表示。合計金額・日付ソート・業者フィルター・CSV出力が使えます。リアルタイムで自動更新されます。</div>
+        </div>
+      </div>
+      <div class="howto-item">
+        <div class="howto-num">5</div>
+        <div>
+          <div class="howto-title">PINモード設定</div>
+          <div class="howto-desc"><strong>モードA（共通PIN）：</strong>全業者が同じPINで入力画面にアクセス。<br>
+          <strong>モードB（個別PIN）：</strong>業者ごとにPINを設定。ログイン時に業者名が自動入力されます。</div>
+        </div>
+      </div>
+      <div class="howto-item">
+        <div class="howto-num">6</div>
+        <div>
+          <div class="howto-title">メール通知設定</div>
+          <div class="howto-desc">Formspree（formspree.io）でフォームを作成し、エンドポイントURL（https://formspree.io/f/xxxxxxxx）を設定画面に入力して「保存」を押してください。保存しないと反映されません。</div>
+        </div>
+      </div>
+      <div class="howto-item" style="border-bottom:none;padding-bottom:0;">
+        <div class="howto-num">🔒</div>
+        <div>
+          <div class="howto-title">ロック</div>
+          <div class="howto-desc">右上の「ロック」ボタンでPIN画面に戻ります。離席時は必ずロックしてください。</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import {
+  getFirestore, collection, addDoc, getDocs,
+  deleteDoc, doc, query, orderBy, serverTimestamp, onSnapshot, setDoc, getDoc
+} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+// Firebase設定はlocalStorageから読み込む
+const savedConfig = localStorage.getItem('oba_firebase_config');
+if(savedConfig) {
+  try {
+    const firebaseConfig = JSON.parse(savedConfig);
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+    window._db  = db;
+    window._fns = { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp, onSnapshot, setDoc, getDoc };
+    window._firebaseReady = true;
+  } catch(e) {
+    console.error('Firebase初期化エラー:', e);
+    window._firebaseReady = false;
+  }
+} else {
+  window._firebaseReady = false;
+}
+</script>
+
+<script>
+// ══ 定数 ══
+const PIN_KEY        = 'oba_pin_v3';
+const COLOR_KEY      = 'oba_color';
+const COLORDIM_KEY   = 'oba_color_dim';
+const COMPANY_KEY    = 'oba_company';
+const FORMSPREE_KEY  = 'oba_formspree';
+const PINMODE_KEY    = 'oba_pin_mode';
+const COMMONPIN_KEY  = 'oba_common_pin';
+const GYOSHAPINS_KEY = 'oba_gyosha_pins';
+const DEFAULT_PIN    = '1234';
+const DEFAULT_FORMSPREE = 'https://formspree.io/f/maqvwgeg';
+
+// デフォルト業者PIN（モードB用テスト）
+const DEFAULT_GYOSHA_PINS = [
+  { name:'テスト業者A', pin:'1111' },
+  { name:'テスト業者B', pin:'2222' }
+];
+
+function getAdminPin()    { return localStorage.getItem(PIN_KEY) || DEFAULT_PIN; }
+function getFormspree()   { return localStorage.getItem(FORMSPREE_KEY) || DEFAULT_FORMSPREE; }
+function getCompany()     { return localStorage.getItem(COMPANY_KEY) || '請求管理システム'; }
+function getPinMode()     { return localStorage.getItem(PINMODE_KEY) || 'B'; }
+function getCommonPin()   { return localStorage.getItem(COMMONPIN_KEY) || '0000'; }
+function getGyoshaPins()  {
+  const stored = localStorage.getItem(GYOSHAPINS_KEY);
+  if(!stored) {
+    // 初回：デフォルトデータを保存してから返す
+    localStorage.setItem(GYOSHAPINS_KEY, JSON.stringify(DEFAULT_GYOSHA_PINS));
+    return DEFAULT_GYOSHA_PINS;
+  }
+  try {
+    const parsed = JSON.parse(stored);
+    return (parsed && parsed.length > 0) ? parsed : DEFAULT_GYOSHA_PINS;
+  } catch(e) { return DEFAULT_GYOSHA_PINS; }
+}
+function saveGyoshaPins(arr) { localStorage.setItem(GYOSHAPINS_KEY, JSON.stringify(arr)); }
+
+// 初回起動時にデフォルトデータを確実に保存
+function initDefaultData() {
+  if(!localStorage.getItem(GYOSHAPINS_KEY)) {
+    localStorage.setItem(GYOSHAPINS_KEY, JSON.stringify(DEFAULT_GYOSHA_PINS));
+  }
+  if(!localStorage.getItem(PINMODE_KEY)) {
+    localStorage.setItem(PINMODE_KEY, 'B');
+  }
+}
+
+// ══ カラー ══
+function applyColor(color, dim) {
+  document.documentElement.style.setProperty('--accent', color);
+  document.documentElement.style.setProperty('--accent-dim', dim);
+  localStorage.setItem(COLOR_KEY, color);
+  localStorage.setItem(COLORDIM_KEY, dim);
+  document.querySelectorAll('.swatch').forEach(s=>s.classList.toggle('selected', s.dataset.color===color));
+}
+function selectColor(el) { applyColor(el.dataset.color, el.dataset.dim); showToast('カラーを変更しました'); }
+function loadColor() {
+  const c=localStorage.getItem(COLOR_KEY), d=localStorage.getItem(COLORDIM_KEY);
+  if(c&&d) applyColor(c,d);
+  else document.querySelector('.swatch').classList.add('selected');
+}
+
+// ══ PIN認証 ══
+let pinBuf='', currentRole=null, currentGyoshaName=null;
+
+function updateDots() { for(let i=0;i<4;i++) document.getElementById('d'+i).classList.toggle('filled',i<pinBuf.length); }
+function pressKey(k) {
+  if(pinBuf.length>=4) return;
+  pinBuf+=k; updateDots();
+  document.getElementById('pin-error').textContent='';
+  if(pinBuf.length===4) checkPin();
+}
+function delKey() { pinBuf=pinBuf.slice(0,-1); updateDots(); }
+
+function checkPin() {
+  const entered = pinBuf;
+  // 管理者
+  if(entered === getAdminPin()) {
+    currentRole='admin'; currentGyoshaName=null;
+    loginSuccess();
+    return;
+  }
+  const mode = getPinMode();
+  if(mode==='A') {
+    // 共通業者PIN
+    if(entered === getCommonPin()) {
+      currentRole='gyosha'; currentGyoshaName=null;
+      loginSuccess();
+      return;
+    }
+  } else {
+    // 個別業者PIN
+    const list = getGyoshaPins();
+    const found = list.find(g=>g.pin===entered);
+    if(found) {
+      currentRole='gyosha'; currentGyoshaName=found.name;
+      loginSuccess();
+      return;
+    }
+  }
+  document.getElementById('pin-error').textContent='PINが違います';
+  pinBuf=''; updateDots();
+}
+
+function loginSuccess() {
+  document.getElementById('pin-screen').style.display='none';
+  document.getElementById('header-btns').style.display='flex';
+  const badge = document.getElementById('role-badge');
+  const settingsIcon = document.getElementById('settings-icon');
+  if(currentRole==='admin') {
+    badge.textContent='管理者'; badge.className='role-badge admin';
+    settingsIcon.style.display='block';
+  } else {
+    badge.textContent='業者'; badge.className='role-badge gyosha';
+    settingsIcon.style.display='none';
+  }
+  loadGembaScreen();
+}
+
+function lockScreen() {
+  pinBuf=''; updateDots(); stopListener();
+  currentRole=null; currentGyoshaName=null; currentGemba=null;
+  document.getElementById('pin-error').textContent='';
+  ['gemba-screen','main-screen','gyosha-screen','settings-screen'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('pin-screen').style.display='block';
+  document.getElementById('header-btns').style.display='none';
+  document.getElementById('live-badge').style.display='none';
+  document.getElementById('header-title').textContent=getCompany();
+}
+
+// ══ 物件 ══
+let gembaList=[], currentGemba=null;
+
+async function loadGembaScreen() {
+  ['main-screen','gyosha-screen','settings-screen'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('gemba-screen').style.display='block';
+  document.getElementById('live-badge').style.display='none';
+  document.getElementById('gemba-select-btn').disabled=true;
+  currentGemba=null; stopListener();
+  document.getElementById('gemba-list').innerHTML='<p class="loading-msg">読み込み中…</p>';
+  try {
+    const snap=await window._fns.getDocs(window._fns.collection(window._db,'gemba_list'));
+    gembaList=snap.docs.map(d=>({id:d.id,...d.data()}));
+    gembaList.sort((a,b)=>a.name>b.name?1:-1);
+    renderGembaList(); renderGembaManageList();
+  } catch(e) {
+    document.getElementById('gemba-list').innerHTML='<p class="loading-msg" style="color:var(--danger)">読み込みエラー</p>';
+  }
+}
+
+function renderGembaList() {
+  const el=document.getElementById('gemba-list');
+  if(!gembaList.length){el.innerHTML='<p class="empty-msg">設定から物件を追加してください</p>';return;}
+  el.innerHTML=gembaList.map(g=>`
+    <div class="gemba-item" id="gi_${g.id}" onclick="selectGemba('${g.id}','${esc(g.name)}')">
+      <div><div class="gemba-name">🏗 ${esc(g.name)}</div></div>
+      <span class="gemba-arrow">→</span>
+    </div>`).join('');
+}
+
+function selectGemba(id,name) {
+  document.querySelectorAll('.gemba-item').forEach(el=>el.classList.remove('selected'));
+  document.getElementById('gi_'+id).classList.add('selected');
+  currentGemba={id,name};
+  document.getElementById('gemba-select-btn').disabled=false;
+}
+
+function goToInput() {
+  if(!currentGemba) return;
+  document.getElementById('gemba-screen').style.display='none';
+  document.getElementById('live-badge').style.display='flex';
+  setToday();
+  startListener();
+  if(currentRole==='admin') {
+    document.getElementById('main-screen').style.display='block';
+    document.getElementById('current-gemba-label').textContent=currentGemba.name;
+    document.getElementById('header-title').textContent=currentGemba.name;
+    switchTab('input');
+  } else {
+    // 業者画面
+    document.getElementById('gyosha-screen').style.display='block';
+    document.getElementById('gyosha-gemba-label').textContent=currentGemba.name;
+    document.getElementById('header-title').textContent=currentGemba.name;
+    if(currentGyoshaName) {
+      document.getElementById('gyosha-name-display').value=currentGyoshaName;
+    } else {
+      document.getElementById('gyosha-name-display').value='';
+      document.getElementById('gyosha-name-display').placeholder='業者名を入力';
+      document.getElementById('gyosha-name-display').removeAttribute('readonly');
+    }
+    setGToday();
+  }
+}
+
+function backToGemba() { loadGembaScreen(); }
+
+// ══ リアルタイムリスナー ══
+let unsubscribe=null, allData=[];
+
+function startListener() {
+  stopListener();
+  if(!currentGemba) return;
+  const q=window._fns.query(
+    window._fns.collection(window._db,'seikyu_'+currentGemba.id),
+    window._fns.orderBy('timestamp','desc')
+  );
+  unsubscribe=window._fns.onSnapshot(q, snap=>{
+    allData=snap.docs.map(d=>({id:d.id,...d.data()}));
+    updateGyoshaOptions(); renderList(); updateDatalist();
+  }, err=>console.error(err));
+}
+function stopListener() { if(unsubscribe){unsubscribe();unsubscribe=null;} }
+
+// ══ 物件追加・削除 ══
+async function addGemba() {
+  const name=document.getElementById('new-gemba-input').value.trim();
+  if(!name) return;
+  try {
+    const ref=await window._fns.addDoc(window._fns.collection(window._db,'gemba_list'),{name,createdAt:window._fns.serverTimestamp()});
+    gembaList.push({id:ref.id,name}); gembaList.sort((a,b)=>a.name>b.name?1:-1);
+    renderGembaList(); renderGembaManageList();
+    document.getElementById('new-gemba-input').value='';
+    showToast('物件を追加しました');
+  } catch(e){showToast('追加失敗');}
+}
+async function deleteGemba(id,name) {
+  if(!confirm(`「${name}」を削除しますか？`)) return;
+  await window._fns.deleteDoc(window._fns.doc(window._db,'gemba_list',id));
+  gembaList=gembaList.filter(g=>g.id!==id);
+  renderGembaList(); renderGembaManageList();
+  showToast('削除しました');
+}
+function renderGembaManageList() {
+  const el=document.getElementById('gemba-manage-list');
+  if(!gembaList.length){el.innerHTML='<p style="font-size:12px;color:var(--text-muted);">物件がありません</p>';return;}
+  el.innerHTML=gembaList.map(g=>`
+    <div class="gemba-manage-item">
+      <span class="gemba-manage-name">🏗 ${esc(g.name)}</span>
+      <button class="gemba-del-btn" onclick="deleteGemba('${g.id}','${esc(g.name)}')">削除</button>
+    </div>`).join('');
+}
+
+// ══ 管理者フォーム ══
+function updateGyoshaOptions() {
+  const names=[...new Set(allData.map(d=>d.gyosha))].sort();
+  const sel=document.getElementById('filter-gyosha');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">全業者</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+  if(names.includes(cur)) sel.value=cur;
+}
+function updateDatalist() {
+  const names=[...new Set(allData.map(d=>d.gyosha))].sort();
+  document.getElementById('gyosha-list').innerHTML=names.map(n=>`<option value="${esc(n)}">`).join('');
+}
+function renderList() {
+  const sort=document.getElementById('sort-sel').value;
+  const filter=document.getElementById('filter-gyosha').value;
+  let data=filter?allData.filter(d=>d.gyosha===filter):[...allData];
+  data.sort((a,b)=>{
+    if(sort==='date-desc') return (b.hizuke||'')>(a.hizuke||'')?1:-1;
+    if(sort==='date-asc')  return (a.hizuke||'')>(b.hizuke||'')?1:-1;
+    if(sort==='amount-desc') return (b.kingaku||0)-(a.kingaku||0);
+    if(sort==='amount-asc')  return (a.kingaku||0)-(b.kingaku||0);
+    return 0;
+  });
+  const total=data.reduce((s,d)=>s+(d.kingaku||0),0);
+  const gc=new Set(data.map(d=>d.gyosha)).size;
+  document.getElementById('summary-bar').innerHTML=`
+    <div class="summary-chip"><div class="label">件数</div><div class="value">${data.length}件</div></div>
+    <div class="summary-chip"><div class="label">業者数</div><div class="value">${gc}社</div></div>
+    <div class="summary-chip"><div class="label">合計金額</div><div class="value">¥${total.toLocaleString('ja-JP')}</div></div>`;
+  if(!data.length){document.getElementById('list-body').innerHTML='<p class="empty-msg">データがありません</p>';return;}
+  const groups={};
+  data.forEach(d=>{if(!groups[d.gyosha])groups[d.gyosha]=[];groups[d.gyosha].push(d);});
+  let html='';
+  Object.entries(groups).forEach(([name,rows])=>{
+    const sub=rows.reduce((s,r)=>s+(r.kingaku||0),0);
+    const gid='g_'+btoa(encodeURIComponent(name)).replace(/[^a-z0-9]/gi,'');
+    const isOpen=document.getElementById(gid)?.classList.contains('open');
+    html+=`<div class="gyosha-group">
+      <div class="gyosha-header" onclick="toggleGroup('${gid}')">
+        <span class="gyosha-name">🏢 ${esc(name)}</span>
+        <span style="display:flex;align-items:center;gap:8px;">
+          <span class="gyosha-total">¥${sub.toLocaleString('ja-JP')}</span>
+          <span class="gyosha-arrow${isOpen?' open':''}" id="arr_${gid}">▼</span>
+        </span>
+      </div>
+      <div class="gyosha-rows${isOpen?' open':''}" id="${gid}">
+        ${rows.map(r=>`
+          <div class="row-item">
+            <span class="row-date">${r.hizuke||''}</span>
+            <span class="row-memo">${esc(r.memo||'—')}</span>
+            <span style="display:flex;align-items:center;">
+              <span class="row-amount">¥${(r.kingaku||0).toLocaleString('ja-JP')}</span>
+              <button class="row-del" onclick="deleteRow('${r.id}')">🗑</button>
+            </span>
+          </div>`).join('')}
+      </div></div>`;
+  });
+  document.getElementById('list-body').innerHTML=html;
+}
+function toggleGroup(gid){
+  document.getElementById(gid).classList.toggle('open');
+  document.getElementById('arr_'+gid).classList.toggle('open');
+}
+async function deleteRow(id){
+  if(!confirm('この請求を削除しますか？')) return;
+  await window._fns.deleteDoc(window._fns.doc(window._db,'seikyu_'+currentGemba.id,id));
+  showToast('削除しました');
+}
+function setToday(){
+  const t=new Date();
+  document.getElementById('hizuke').value=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+}
+function clearForm(){
+  ['gyosha','kingaku','memo'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('status-msg').textContent='';
+  document.getElementById('status-msg').className='status-msg';
+  setToday();
+}
+async function sendForm(){
+  const gyosha=document.getElementById('gyosha').value.trim();
+  const kingaku=parseInt(document.getElementById('kingaku').value)||0;
+  const hizuke=document.getElementById('hizuke').value;
+  const memo=document.getElementById('memo').value.trim();
+  const status=document.getElementById('status-msg');
+  const btn=document.getElementById('send-btn');
+  if(!gyosha||!kingaku||!hizuke){status.textContent='業者名・金額・日付は必須です';status.className='status-msg err';return;}
+  btn.disabled=true; status.textContent='保存中…'; status.className='status-msg';
+  try {
+    await window._fns.addDoc(window._fns.collection(window._db,'seikyu_'+currentGemba.id),{
+      gyosha,kingaku,hizuke,memo,gemba:currentGemba.name,timestamp:window._fns.serverTimestamp()
+    });
+    const fd=new FormData();
+    fd.append('現場名',currentGemba.name); fd.append('業者名',gyosha);
+    fd.append('請求金額',`¥${kingaku.toLocaleString('ja-JP')}`);
+    fd.append('日付',hizuke); fd.append('メモ',memo||'（なし）');
+    fetch(getFormspree(),{method:'POST',body:fd,headers:{Accept:'application/json'}});
+    showToast('保存しました！'); clearForm(); status.textContent='';
+  } catch(e){status.textContent='保存に失敗しました';status.className='status-msg err';}
+  btn.disabled=false;
+}
+function exportCSV(){
+  const filter=document.getElementById('filter-gyosha').value;
+  const data=filter?allData.filter(d=>d.gyosha===filter):[...allData];
+  if(!data.length){alert('データがありません');return;}
+  const rows=[['物件名','業者名','日付','請求金額','メモ']];
+  [...data].sort((a,b)=>a.hizuke>b.hizuke?-1:1).forEach(d=>{
+    rows.push([d.gemba||currentGemba.name,d.gyosha,d.hizuke,d.kingaku,d.memo||'']);
+  });
+  const csv='\uFEFF'+rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  a.download=`seikyu_${currentGemba.name}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); showToast('CSVを出力しました');
+}
+function switchTab(t){
+  document.getElementById('pane-input').style.display=t==='input'?'block':'none';
+  document.getElementById('pane-list').style.display=t==='list'?'block':'none';
+  document.getElementById('tab-input').classList.toggle('active',t==='input');
+  document.getElementById('tab-list').classList.toggle('active',t==='list');
+  if(!unsubscribe&&currentGemba) startListener();
+}
+
+// ══ 業者フォーム ══
+function setGToday(){
+  const t=new Date();
+  document.getElementById('g-hizuke').value=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+}
+function clearGyoshaForm(){
+  document.getElementById('g-kingaku').value='';
+  document.getElementById('g-memo').value='';
+  document.getElementById('g-status-msg').textContent='';
+  document.getElementById('g-status-msg').className='status-msg';
+  setGToday();
+}
+async function sendGyoshaForm(){
+  const gyosha=document.getElementById('gyosha-name-display').value.trim();
+  const kingaku=parseInt(document.getElementById('g-kingaku').value)||0;
+  const hizuke=document.getElementById('g-hizuke').value;
+  const memo=document.getElementById('g-memo').value.trim();
+  const status=document.getElementById('g-status-msg');
+  const btn=document.getElementById('g-send-btn');
+  if(!gyosha||!kingaku||!hizuke){status.textContent='業者名・金額・日付は必須です';status.className='status-msg err';return;}
+  btn.disabled=true; status.textContent='送信中…'; status.className='status-msg';
+  try {
+    await window._fns.addDoc(window._fns.collection(window._db,'seikyu_'+currentGemba.id),{
+      gyosha,kingaku,hizuke,memo,gemba:currentGemba.name,timestamp:window._fns.serverTimestamp()
+    });
+    const fd=new FormData();
+    fd.append('現場名',currentGemba.name); fd.append('業者名',gyosha);
+    fd.append('請求金額',`¥${kingaku.toLocaleString('ja-JP')}`);
+    fd.append('日付',hizuke); fd.append('メモ',memo||'（なし）');
+    fetch(getFormspree(),{method:'POST',body:fd,headers:{Accept:'application/json'}});
+    showToast('送信しました！'); clearGyoshaForm(); status.textContent='';
+  } catch(e){status.textContent='送信に失敗しました';status.className='status-msg err';}
+  btn.disabled=false;
+}
+
+// ══ 設定 ══
+function maskUrl(url){
+  if(!url) return '未設定';
+  // https://formspree.io/f/abcd1234 → https://formspree.io/f/●●●●●●●●
+  return url.replace(/\/f\/[a-zA-Z0-9]+$/, '/f/●●●●●●●●');
+}
+function showSettings(){
+  ['gemba-screen','main-screen','gyosha-screen'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('settings-screen').style.display='block';
+  document.getElementById('company-name-input').value=getCompany();
+  document.getElementById('formspree-input').value='';
+  document.getElementById('formspree-input').placeholder=maskUrl(getFormspree());
+  const masked=document.getElementById('formspree-masked');
+  if(masked) masked.textContent=maskUrl(getFormspree());
+  document.getElementById('common-pin-input').value=getCommonPin();
+  loadPinModeUI();
+  loadGembaManageOnly();
+  renderGyoshaPinTable();
+}
+function hideSettings(){ loadGembaScreen(); }
+
+async function loadGembaManageOnly(){
+  try {
+    const snap=await window._fns.getDocs(window._fns.collection(window._db,'gemba_list'));
+    gembaList=snap.docs.map(d=>({id:d.id,...d.data()}));
+    gembaList.sort((a,b)=>a.name>b.name?1:-1);
+    renderGembaManageList();
+  } catch(e){}
+}
+
+function saveCompanyName(){
+  const v=document.getElementById('company-name-input').value.trim();
+  if(!v) return;
+  localStorage.setItem(COMPANY_KEY,v);
+  document.getElementById('header-title').textContent=v;
+  showToast('会社名を保存しました');
+}
+function saveFormspree(){
+  const v=document.getElementById('formspree-input').value.trim();
+  if(!v){ showToast('URLを入力してください'); return; }
+  if(!v.startsWith('https://formspree.io/f/')){ showToast('正しいFormspree URLを入力してください'); return; }
+  localStorage.setItem(FORMSPREE_KEY,v);
+  document.getElementById('formspree-input').value='';
+  document.getElementById('formspree-input').placeholder=maskUrl(v);
+  const masked=document.getElementById('formspree-masked');
+  if(masked) masked.textContent=maskUrl(v);
+  showToast('メール設定を保存しました');
+}
+
+// ══ PINモード ══
+function setPinMode(mode){
+  localStorage.setItem(PINMODE_KEY,mode);
+  loadPinModeUI();
+  showToast(`モード${mode}に切り替えました`);
+}
+function loadPinModeUI(){
+  const mode=getPinMode();
+  document.getElementById('mode-btn-a').classList.toggle('active',mode==='A');
+  document.getElementById('mode-btn-b').classList.toggle('active',mode==='B');
+  document.getElementById('mode-a-section').style.display=mode==='A'?'block':'none';
+  document.getElementById('mode-b-section').style.display=mode==='B'?'block':'none';
+}
+function saveCommonPin(){
+  const v=document.getElementById('common-pin-input').value.trim();
+  if(v.length!==4||isNaN(v)){showToast('4桁の数字で入力してください');return;}
+  localStorage.setItem(COMMONPIN_KEY,v);
+  showToast('共通PINを保存しました');
+}
+
+// ══ 管理者PIN変更 ══
+function changeAdminPin(){
+  const cur=document.getElementById('admin-cur-pin').value;
+  const np=document.getElementById('admin-new-pin').value;
+  const err=document.getElementById('admin-pin-err');
+  if(cur!==getAdminPin()){err.textContent='現在のPINが違います';return;}
+  if(np.length!==4||isNaN(np)){err.textContent='4桁の数字で入力してください';return;}
+  localStorage.setItem(PIN_KEY,np);
+  document.getElementById('admin-cur-pin').value='';
+  document.getElementById('admin-new-pin').value='';
+  err.textContent='';
+  showToast('管理者PINを変更しました');
+}
+
+// ══ 業者個別PIN管理 ══
+function renderGyoshaPinTable(){
+  const list=getGyoshaPins();
+  const tbody=document.getElementById('gyosha-pin-tbody');
+  if(!list.length){tbody.innerHTML=`<tr><td colspan="3" style="color:var(--text-muted);font-size:12px;padding:10px;">業者がいません</td></tr>`;return;}
+  tbody.innerHTML=list.map((g,i)=>`
+    <tr>
+      <td>${esc(g.name)}</td>
+      <td>
+        <div class="pin-input-cell">
+          <input type="text" maxlength="4" inputmode="numeric" value="${esc(g.pin)}" id="gpin_${i}" onchange="updateGyoshaPin(${i},this.value)">
+          <button class="pin-save-btn" onclick="saveOneGyoshaPin(${i})">保存</button>
+        </div>
+      </td>
+      <td><button class="pin-del-btn" onclick="deleteGyoshaPin(${i})">削除</button></td>
+    </tr>`).join('');
+}
+function updateGyoshaPin(i,val){ /* 入力中 */ }
+function saveOneGyoshaPin(i){
+  const val=document.getElementById('gpin_'+i).value.trim();
+  if(!/^\d{4}$/.test(val)){showToast('4桁の数字で入力してください');return;}
+  const list=getGyoshaPins();
+  // 重複チェック（管理者PINと）
+  if(val===getAdminPin()){showToast('管理者PINと同じPINは使えません');return;}
+  list[i].pin=val;
+  saveGyoshaPins(list);
+  showToast(`${list[i].name}のPINを保存しました`);
+}
+function deleteGyoshaPin(i){
+  const list=getGyoshaPins();
+  if(!confirm(`「${list[i].name}」を削除しますか？`)) return;
+  list.splice(i,1);
+  saveGyoshaPins(list);
+  renderGyoshaPinTable();
+  showToast('削除しました');
+}
+function addGyoshaPin(){
+  const name=document.getElementById('new-gyosha-name').value.trim();
+  const pin=document.getElementById('new-gyosha-pin').value.trim();
+  const err=document.getElementById('gyosha-pin-err');
+  if(!name){err.textContent='業者名を入力してください';return;}
+  if(pin.length!==4||isNaN(pin)){err.textContent='PINは4桁の数字で入力してください';return;}
+  if(pin===getAdminPin()){err.textContent='管理者PINと同じPINは使えません';return;}
+  const list=getGyoshaPins();
+  if(list.find(g=>g.pin===pin)){err.textContent='このPINは既に使われています';return;}
+  list.push({name,pin});
+  saveGyoshaPins(list);
+  renderGyoshaPinTable();
+  document.getElementById('new-gyosha-name').value='';
+  document.getElementById('new-gyosha-pin').value='';
+  err.textContent='';
+  showToast(`${name}を追加しました`);
+}
+
+// ══ ユーティリティ ══
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2600);
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ══ グローバル公開 ══
+window.saveFirebaseConfig=saveFirebaseConfig;
+window.resetFirebaseConfig=resetFirebaseConfig;
+window.pressKey=pressKey; window.delKey=delKey;
+window.selectGemba=selectGemba; window.goToInput=goToInput; window.backToGemba=backToGemba;
+window.switchTab=switchTab; window.lockScreen=lockScreen;
+window.clearForm=clearForm; window.sendForm=sendForm;
+window.clearGyoshaForm=clearGyoshaForm; window.sendGyoshaForm=sendGyoshaForm;
+window.exportCSV=exportCSV; window.renderList=renderList;
+window.toggleGroup=toggleGroup; window.deleteRow=deleteRow;
+window.showSettings=showSettings; window.hideSettings=hideSettings;
+window.selectColor=selectColor; window.addGemba=addGemba; window.deleteGemba=deleteGemba;
+window.saveCompanyName=saveCompanyName; window.saveFormspree=saveFormspree;
+window.setPinMode=setPinMode; window.saveCommonPin=saveCommonPin;
+window.changeAdminPin=changeAdminPin;
+window.renderGyoshaPinTable=renderGyoshaPinTable;
+window.saveOneGyoshaPin=saveOneGyoshaPin; window.deleteGyoshaPin=deleteGyoshaPin;
+window.addGyoshaPin=addGyoshaPin; window.updateGyoshaPin=updateGyoshaPin;
+
+// ══ Firebase設定 ══
+function saveFirebaseConfig() {
+  const config = {
+    apiKey:            document.getElementById('fb-apikey').value.trim(),
+    authDomain:        document.getElementById('fb-authdomain').value.trim(),
+    projectId:         document.getElementById('fb-projectid').value.trim(),
+    storageBucket:     document.getElementById('fb-storagebucket').value.trim(),
+    messagingSenderId: document.getElementById('fb-senderid').value.trim(),
+    appId:             document.getElementById('fb-appid').value.trim(),
+  };
+  const err = document.getElementById('fb-err');
+  if(!config.apiKey || !config.authDomain || !config.projectId || !config.appId) {
+    err.textContent = 'API Key・Auth Domain・Project ID・App IDは必須です';
+    return;
+  }
+  localStorage.setItem('oba_firebase_config', JSON.stringify(config));
+  showToast('Firebase設定を保存しました。再読み込みします…');
+  setTimeout(()=>location.reload(), 1500);
+}
+
+// Firebase設定済みURLを生成して共有
+function generateShareUrl() {
+  const config = localStorage.getItem('oba_firebase_config');
+  if(!config) { showToast('先にFirebase設定を保存してください'); return; }
+  const encoded = btoa(encodeURIComponent(config));
+  const url = `${location.origin}${location.pathname}?fb=${encoded}`;
+  navigator.clipboard.writeText(url).then(()=>{
+    showToast('共有URLをコピーしました！業者に送ってください😊');
+  }).catch(()=>{
+    prompt('このURLをコピーして業者に送ってください：', url);
+  });
+}
+
+function resetFirebaseConfig() {
+  if(!confirm('Firebase設定をリセットしますか？\n再読み込み後に設定画面が表示されます。')) return;
+  localStorage.removeItem('oba_firebase_config');
+  location.reload();
+}
+
+function checkFirebaseSetup() {
+  const setupScreen = document.getElementById('firebase-setup-screen');
+  const pinScreen = document.getElementById('pin-screen');
+  if(!window._firebaseReady) {
+    // Firebase未設定の場合はPIN画面を隠してセットアップ画面を表示
+    if(pinScreen) pinScreen.style.display = 'none';
+    if(setupScreen) setupScreen.style.display = 'block';
+  } else {
+    // Firebase設定済みの場合はセットアップ画面を隠してPIN画面を表示
+    if(setupScreen) setupScreen.style.display = 'none';
+    if(pinScreen) pinScreen.style.display = 'block';
+  }
+}
+
+// URLパラメータからFirebase設定を読み込む
+function loadFirebaseFromUrl() {
+  const params = new URLSearchParams(location.search);
+  const fb = params.get('fb');
+  if(fb && !localStorage.getItem('oba_firebase_config')) {
+    try {
+      const config = decodeURIComponent(atob(fb));
+      localStorage.setItem('oba_firebase_config', config);
+      // パラメータを除いたURLにリダイレクト
+      location.href = location.origin + location.pathname;
+    } catch(e) {
+      console.error('URL設定の読み込みエラー:', e);
+    }
+  }
+}
+loadFirebaseFromUrl();
+
+// ══ 初期化 ══
+initDefaultData();
+loadColor();
+document.getElementById('header-title').textContent=getCompany();
+checkFirebaseSetup();
+</script>
+</body>
+</html>
